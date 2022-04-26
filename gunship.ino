@@ -64,7 +64,7 @@ void setup()
 {
    digitalWrite(CONSTANTLEDS, LOW);        // GREEN lights start OFF
    digitalWrite(PULSELEDS,    LOW);       // Pulse leds start OFF
-   digitalWrite(REDPULSE,     HIGH);     // Pulse leds start OFF (Active LOW led)
+   digitalWrite(REDPULSE,     LOW);      // Red Pulse led starts OFF 
    digitalWrite(MAINROTOR,    LOW);     // Main Rotor starts OFF   
    digitalWrite(TAILROTOR,    LOW);    // Tail Rotor starts OFF   
    
@@ -119,11 +119,11 @@ void loop()
       }
       if ((TickCounter % 100) == 50)
       {
-        digitalWrite(REDPULSE, LOW); // Red Pulse leds switch ON (this led is active LOW) at a different timing
+        digitalWrite(REDPULSE, HIGH); // Red Pulse leds switch ON at a different timing
       }
       if ((TickCounter % 100) == 51)
       {
-        digitalWrite(REDPULSE, HIGH); // Pulse leds switch OFF just 1/100th of a second later
+        digitalWrite(REDPULSE, LOW); // Pulse leds switch OFF just 1/100th of a second later
       }
    }
 
