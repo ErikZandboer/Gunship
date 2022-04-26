@@ -14,12 +14,12 @@
 #include <Servo.h>
 
 // Define the physical pinout
-#define SERVOX        5
-#define SERVOY        6
+#define GUNSERVO      5
 #define MP3_TX        7   // connect to RX of the MP3 player module
 #define MP3_RX        8
-#define GREENLIGHTS   9 
+#define CONSTANTLEDS  9 
 #define PULSELEDS     10
+#define REDPULSE      11
 #define MAINROTOR     2
 #define TAILROTOR     3
 
@@ -28,8 +28,7 @@ byte    MainMotorSpeed = 0;  // Speed at which the motor turns. Used in the Moto
 byte    TailMotorSpeed = 0;  // Speed at which the motor turns. Used in the Motor state machine.
 
 // Define the servos
-Servo servoX;
-Servo servoY;
+Servo gunServo;
 
 // Setup serial comms to the MP3 hardware
 MP3 mp3(MP3_RX, MP3_TX);
@@ -37,20 +36,19 @@ MP3 mp3(MP3_RX, MP3_TX);
 // Get some base counters in for the runtime in seconds.
 unsigned int    TickCounter=0;
 
-#define servoXmin 45
-#define servoXmax 135
-#define servoYmin 45
-#define servoYmax 135
+// in/max degrees for gunservo
+#define GUNSERVO_MIN 70
+#define GUNSERVO_MAX 110
 
 #define RUN_FREQ 100
 
 // Timings and things to change
 #define TIM_SAMPLESTART       20*RUN_FREQ       // Seconds after which the sample starts playing 
 #define TIM_SAMPLELENGTH      40*RUN_FREQ       // Length of the sample 
-#define TIM_GREEN_ON          20*RUN_FREQ
-#define TIM_GREEN_OFF         40*RUN_FREQ
-#define TIM_SERVOS_ON         26*RUN_FREQ
-#define TIM_SERVOS_OFF        40*RUN_FREQ
+#define TIM_CONSTANT_ON       20*RUN_FREQ
+#define TIM_CONSTANT_OFF      40*RUN_FREQ
+#define TIM_SERVO_ON          26*RUN_FREQ
+#define TIM_SERVO_OFF         40*RUN_FREQ
 #define TIM_PULSE_ON          20*RUN_FREQ
 #define TIM_PULSE_OFF         50*RUN_FREQ
 #define TIM_TAILROTOR_ON      22*RUN_FREQ
@@ -64,16 +62,18 @@ unsigned int    TickCounter=0;
 // This runs only once when powering on
 void setup()
 {
-   digitalWrite(GREENLIGHTS, LOW);       // GREEN lights start OFF
-   digitalWrite(PULSELEDS,   LOW);      // Pulse leds start OFF
-   digitalWrite(MAINROTOR,   LOW);     // Main Rotor starts OFF   
-   digitalWrite(TAILROTOR,   LOW);    // Tail Rotor starts OFF   
+   digitalWrite(CONSTANTLEDS, LOW);        // GREEN lights start OFF
+   digitalWrite(PULSELEDS,    LOW);       // Pulse leds start OFF
+   digitalWrite(REDPULSE,     HIGH);     // Pulse leds start OFF (Active LOW led)
+   digitalWrite(MAINROTOR,    LOW);     // Main Rotor starts OFF   
+   digitalWrite(TAILROTOR,    LOW);    // Tail Rotor starts OFF   
    
    // All led and motor groups are defined as pin OUTPUT
-   pinMode (GREENLIGHTS, OUTPUT);
-   pinMode (PULSELEDS, OUTPUT);
-   pinMode (MAINROTOR, OUTPUT);
-   pinMode (TAILROTOR, OUTPUT);
+   pinMode (CONSTANTLEDS, OUTPUT);
+   pinMode (PULSELEDS,    OUTPUT);
+   pinMode (REDPULSE,     OUTPUT);
+   pinMode (MAINROTOR,    OUTPUT);
+   pinMode (TAILROTOR,    OUTPUT);
         
    // Get a random seeding by reading analog pin 0 (leave disconnected!)
    randomSeed(analogRead(0));
@@ -116,6 +116,14 @@ void loop()
       if ((TickCounter % 100) == 1)
       {
         digitalWrite(PULSELEDS, LOW); // Pulse leds switch OFF just 1/100th of a second later
+      }
+      if ((TickCounter % 100) == 50)
+      {
+        digitalWrite(REDPULSE, LOW); // Red Pulse leds switch ON (this led is active LOW) at a different timing
+      }
+      if ((TickCounter % 100) == 51)
+      {
+        digitalWrite(REDPULSE, HIGH); // Pulse leds switch OFF just 1/100th of a second later
       }
    }
 
@@ -165,37 +173,31 @@ void loop()
     analogWrite(TAILROTOR,0);
    }
 
-   // ------------------------------ HANDLE THE GREEN BURNING LEDS --------------------------------------
-   if (TickCounter == TIM_GREEN_ON)
+   // ------------------------------ HANDLE THE CONSTANT BURNING LEDS --------------------------------------
+   if (TickCounter == TIM_CONSTANT_ON)
    {
-      digitalWrite(GREENLIGHTS, HIGH); // Green leds switch ON
+      digitalWrite(CONSTANTLEDS, HIGH); // Green leds switch ON
    } 
-   if (TickCounter == TIM_GREEN_OFF)
+   if (TickCounter == TIM_CONSTANT_OFF)
    {
-      digitalWrite(GREENLIGHTS, LOW); // Green leds switch OFF
+      digitalWrite(CONSTANTLEDS, LOW); // Green leds switch OFF
    } 
 
-   // ------------------------------ HANDLE THE SERVOS --------------------------------------
-   if (TickCounter == TIM_SERVOS_ON)
+   // ------------------------------ HANDLE THE SERVO --------------------------------------
+   if (TickCounter == TIM_SERVO_ON)
    {
-      servoX.attach(SERVOX);
-      servoY.attach(SERVOY);
+      gunServo.attach(GUNSERVO);
    }
 
-   // Within this timeframe the servo's are allowed to move each second. X moves on the second, Y moves on every half-a-second
-   if ( (TickCounter >= TIM_SERVOS_ON) && (TickCounter < TIM_SERVOS_OFF) && ((TickCounter %100) ==0) )
+   // Within this timeframe the servo is allowed to move each second.
+   if ( (TickCounter >= TIM_SERVO_ON) && (TickCounter < TIM_SERVO_OFF) && ((TickCounter %100) ==0) )
    {
-      servoX.write((unsigned char)random(servoXmin,servoXmax));
-   }
-   if ( (TickCounter >= TIM_SERVOS_ON) && (TickCounter < TIM_SERVOS_OFF) && ((TickCounter %100) ==50) )
-   {
-      servoY.write((unsigned char)random(servoYmin,servoYmax));
+      gunServo.write((unsigned char)random(GUNSERVO_MIN,GUNSERVO_MAX));
    }
 
-   if (TickCounter == TIM_SERVOS_OFF)
+   if (TickCounter == TIM_SERVO_OFF)
    {
-      servoX.detach();
-      servoY.detach();
+      gunServo.detach();
    }
 
    delay(1); // Added this dummy delay() to make sure the code takes more than 1 ms to execute.
